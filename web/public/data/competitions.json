@@ -1,0 +1,19 @@
+{
+  "competitions": [
+    {
+      "key": "wc2022",
+      "name": "FIFA World Cup 2022",
+      "competition_id": 43,
+      "season_id": 106,
+      "live_turnovers": 4213,
+      "excluded_restarts": 2810,
+      "unlocated": 32,
+      "regain_pct_5": 1.5,
+      "regain_pct_8": 5.2,
+      "pressure_pct_8": 51.3,
+      "counterpress_share": 47.8,
+      "default_match_id": 3857263,
+      "default_match_label": "Spain 1–1 Germany"
+    }
+  ]
+}

@@ -1,11 +1,6 @@
-"""Command-line entry point.
-
-`build` is declared so the console script exists. Extract, load, and
-transform start in later phases.
-"""
+"""Command-line entry point."""
 
 import argparse
-import sys
 
 
 def main(argv: list[str] | None = None) -> None:
@@ -25,12 +20,10 @@ def main(argv: list[str] | None = None) -> None:
     )
     args = parser.parse_args(argv)
     if args.command == "build":
-        print(
-            "build is not implemented yet. "
-            "Phase 0 is the project scaffold; extract starts in Phase 1.",
-            file=sys.stderr,
-        )
-        raise SystemExit(1)
+        from gegenpress.flows import build_flow
+
+        build_flow(competition=args.competition)
+        return
     parser.print_help()
 
 

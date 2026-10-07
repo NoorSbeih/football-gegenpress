@@ -1,0 +1,473 @@
+"""Tiny event lists shaped like raw.events. No network."""
+
+from pathlib import Path
+
+import duckdb
+import pandas as pd
+import pytest
+
+from gegenpress.transform import transform
+
+
+def ev(**overrides: object) -> dict[str, object]:
+    row: dict[str, object] = {
+        "match_id": 1,
+        "period": 1,
+        "index": 1,
+        "timestamp": "00:00:00.000",
+        "minute": 0,
+        "second": 0,
+        "type": "Pass",
+        "team": "Pressers",
+        "team_id": 1,
+        "possession": 1,
+        "possession_team": "Pressers",
+        "possession_team_id": 1,
+        "play_pattern": "Regular Play",
+        "pass_type": None,
+        "pass_outcome": None,
+        "shot_type": None,
+        "location": "[50.0, 40.0]",
+        "pass_end_location": None,
+        "counterpress": None,
+    }
+    row.update(overrides)
+    return row
+
+
+def fixture_events() -> list[dict[str, object]]:
+    return [
+        # Match 1: incomplete pass, pressure at +1.2s, regain at +3s.
+        ev(
+            index=1,
+            timestamp="00:00:10.000",
+            second=10,
+            location="[60.0, 40.0]",
+            pass_end_location="[70.0, 40.0]",
+            pass_outcome="Incomplete",
+        ),
+        ev(
+            index=2,
+            timestamp="00:00:10.400",
+            second=10,
+            type="Ball Recovery",
+            team="Holders",
+            team_id=2,
+            possession=2,
+            possession_team="Holders",
+            possession_team_id=2,
+            location="[72.0, 40.0]",
+        ),
+        ev(
+            index=3,
+            timestamp="00:00:11.200",
+            second=11,
+            type="Pressure",
+            team="Pressers",
+            team_id=1,
+            possession=2,
+            possession_team="Holders",
+            possession_team_id=2,
+            location="[71.0, 40.0]",
+            counterpress=True,
+        ),
+        ev(
+            index=4,
+            timestamp="00:00:13.000",
+            second=13,
+            type="Ball Recovery",
+            possession=3,
+            location="[75.0, 42.0]",
+        ),
+        # Match 2: opponent keeps it for 12.5s, no pressure.
+        ev(
+            match_id=2,
+            index=1,
+            timestamp="00:00:10.000",
+            second=10,
+            team="Keepers",
+            team_id=3,
+            possession_team="Keepers",
+            possession_team_id=3,
+            location="[40.0, 40.0]",
+            pass_end_location="[55.0, 40.0]",
+            pass_outcome="Incomplete",
+        ),
+        ev(
+            match_id=2,
+            index=2,
+            timestamp="00:00:10.500",
+            second=10,
+            type="Ball Recovery",
+            team="Others",
+            team_id=4,
+            possession=2,
+            possession_team="Others",
+            possession_team_id=4,
+            location="[56.0, 40.0]",
+        ),
+        ev(
+            match_id=2,
+            index=3,
+            timestamp="00:00:22.500",
+            second=22,
+            type="Ball Recovery",
+            team="Keepers",
+            team_id=3,
+            possession=3,
+            possession_team="Keepers",
+            possession_team_id=3,
+            location="[50.0, 40.0]",
+        ),
+        # Match 3: next possession starts with a goal kick.
+        ev(
+            match_id=3,
+            index=1,
+            timestamp="00:01:00.000",
+            minute=1,
+            team="RestartA",
+            team_id=5,
+            possession_team="RestartA",
+            possession_team_id=5,
+            pass_outcome="Incomplete",
+            pass_end_location="[20.0, 10.0]",
+        ),
+        ev(
+            match_id=3,
+            index=2,
+            timestamp="00:01:20.000",
+            minute=1,
+            second=20,
+            team="RestartB",
+            team_id=6,
+            possession=2,
+            possession_team="RestartB",
+            possession_team_id=6,
+            pass_type="Goal Kick",
+            play_pattern="From Goal Kick",
+            location="[8.0, 40.0]",
+            pass_end_location="[40.0, 40.0]",
+        ),
+        # Match 4: corner restart.
+        ev(
+            match_id=4,
+            index=1,
+            timestamp="00:02:00.000",
+            minute=2,
+            team="CornerA",
+            team_id=7,
+            possession_team="CornerA",
+            possession_team_id=7,
+            pass_outcome="Out",
+            pass_end_location="[110.0, 0.0]",
+        ),
+        ev(
+            match_id=4,
+            index=2,
+            timestamp="00:02:30.000",
+            minute=2,
+            second=30,
+            team="CornerB",
+            team_id=8,
+            possession=2,
+            possession_team="CornerB",
+            possession_team_id=8,
+            pass_type="Corner",
+            play_pattern="From Corner",
+            location="[120.0, 0.5]",
+        ),
+        # Match 5: shootout. Ignored entirely.
+        ev(
+            match_id=5,
+            period=5,
+            index=1,
+            team="PensA",
+            team_id=9,
+            possession_team="PensA",
+            possession_team_id=9,
+        ),
+        ev(
+            match_id=5,
+            period=5,
+            index=2,
+            type="Shot",
+            shot_type="Penalty",
+            team="PensB",
+            team_id=10,
+            possession=2,
+            possession_team="PensB",
+            possession_team_id=10,
+        ),
+        # Match 6: period ends 4s after the loss. No regain.
+        ev(
+            match_id=6,
+            index=1,
+            timestamp="00:45:00.000",
+            minute=45,
+            team="Clock",
+            team_id=11,
+            possession_team="Clock",
+            possession_team_id=11,
+            location="[70.0, 40.0]",
+            pass_end_location="[90.0, 40.0]",
+            pass_outcome="Incomplete",
+        ),
+        ev(
+            match_id=6,
+            index=2,
+            timestamp="00:45:01.000",
+            minute=45,
+            second=1,
+            type="Ball Recovery",
+            team="Stop",
+            team_id=12,
+            possession=2,
+            possession_team="Stop",
+            possession_team_id=12,
+            location="[92.0, 40.0]",
+        ),
+        ev(
+            match_id=6,
+            index=3,
+            timestamp="00:45:04.000",
+            minute=45,
+            second=4,
+            type="Half End",
+            team="Stop",
+            team_id=12,
+            possession=2,
+            possession_team="Stop",
+            possession_team_id=12,
+            location="[92.0, 40.0]",
+        ),
+        # Match 7: high-loss regain uses only the high-loss denominator.
+        ev(
+            match_id=7,
+            index=1,
+            timestamp="00:00:10.000",
+            second=10,
+            team="HighSide",
+            team_id=13,
+            possession_team="HighSide",
+            possession_team_id=13,
+            location="[80.0, 40.0]",
+            pass_end_location="[90.0, 40.0]",
+            pass_outcome="Incomplete",
+        ),
+        ev(
+            match_id=7,
+            index=2,
+            timestamp="00:00:10.400",
+            second=10,
+            type="Ball Recovery",
+            team="LowOpp",
+            team_id=14,
+            possession=2,
+            possession_team="LowOpp",
+            possession_team_id=14,
+            location="[91.0, 40.0]",
+        ),
+        ev(
+            match_id=7,
+            index=3,
+            timestamp="00:00:12.000",
+            second=12,
+            type="Ball Recovery",
+            team="HighSide",
+            team_id=13,
+            possession=3,
+            possession_team="HighSide",
+            possession_team_id=13,
+            location="[88.0, 40.0]",
+        ),
+        ev(
+            match_id=7,
+            index=4,
+            timestamp="00:00:40.000",
+            second=40,
+            team="HighSide",
+            team_id=13,
+            possession=3,
+            possession_team="HighSide",
+            possession_team_id=13,
+            location="[85.0, 20.0]",
+            pass_end_location="[100.0, 20.0]",
+            pass_outcome="Incomplete",
+        ),
+        ev(
+            match_id=7,
+            index=5,
+            timestamp="00:00:40.500",
+            second=40,
+            type="Ball Recovery",
+            team="LowOpp",
+            team_id=14,
+            possession=4,
+            possession_team="LowOpp",
+            possession_team_id=14,
+            location="[101.0, 20.0]",
+        ),
+        ev(
+            match_id=7,
+            index=6,
+            timestamp="00:01:20.000",
+            minute=1,
+            second=20,
+            team="HighSide",
+            team_id=13,
+            possession=5,
+            possession_team="HighSide",
+            possession_team_id=13,
+            location="[25.0, 40.0]",
+            pass_end_location="[20.0, 40.0]",
+            pass_outcome="Incomplete",
+        ),
+        ev(
+            match_id=7,
+            index=7,
+            timestamp="00:01:20.400",
+            minute=1,
+            second=20,
+            type="Ball Recovery",
+            team="LowOpp",
+            team_id=14,
+            possession=6,
+            possession_team="LowOpp",
+            possession_team_id=14,
+            location="[18.0, 40.0]",
+        ),
+        # Match 8: same team, two StatsBomb possession ids, then a real loss.
+        ev(
+            match_id=8,
+            index=1,
+            timestamp="00:00:05.000",
+            second=5,
+            team="Split",
+            team_id=15,
+            possession_team="Split",
+            possession_team_id=15,
+            location="[12.0, 12.0]",
+            pass_end_location="[10.0, 10.0]",
+        ),
+        ev(
+            match_id=8,
+            index=2,
+            timestamp="00:00:06.000",
+            second=6,
+            type="Carry",
+            team="Split",
+            team_id=15,
+            possession=2,
+            possession_team="Split",
+            possession_team_id=15,
+            location="[30.0, 20.0]",
+        ),
+        ev(
+            match_id=8,
+            index=3,
+            timestamp="00:00:06.500",
+            second=6,
+            type="Ball Recovery",
+            team="Other",
+            team_id=16,
+            possession=3,
+            possession_team="Other",
+            possession_team_id=16,
+            location="[32.0, 20.0]",
+        ),
+        # Match 9: penalty starts the next possession.
+        ev(
+            match_id=9,
+            index=1,
+            timestamp="00:03:00.000",
+            minute=3,
+            team="Fouled",
+            team_id=17,
+            possession_team="Fouled",
+            possession_team_id=17,
+            pass_outcome="Incomplete",
+            pass_end_location="[90.0, 40.0]",
+        ),
+        ev(
+            match_id=9,
+            index=2,
+            timestamp="00:04:00.000",
+            minute=4,
+            type="Shot",
+            shot_type="Penalty",
+            team="Taker",
+            team_id=18,
+            possession=2,
+            possession_team="Taker",
+            possession_team_id=18,
+            location="[108.0, 40.0]",
+        ),
+        # Match 10: drop ball.
+        ev(
+            match_id=10,
+            index=1,
+            timestamp="00:05:00.000",
+            minute=5,
+            team="DropA",
+            team_id=19,
+            possession_team="DropA",
+            possession_team_id=19,
+            pass_outcome="Incomplete",
+            pass_end_location="[60.0, 40.0]",
+        ),
+        ev(
+            match_id=10,
+            index=2,
+            timestamp="00:05:10.000",
+            minute=5,
+            second=10,
+            type="Referee Ball-Drop",
+            team="DropB",
+            team_id=20,
+            possession=2,
+            possession_team="DropB",
+            possession_team_id=20,
+            location="[60.0, 40.0]",
+        ),
+    ]
+
+
+def _matches(events: list[dict[str, object]]) -> pd.DataFrame:
+    ids = sorted({int(row["match_id"]) for row in events})
+    return pd.DataFrame(
+        {
+            "match_id": ids,
+            "match_date": ["2022-11-20"] * len(ids),
+            "home_team": ["Home"] * len(ids),
+            "away_team": ["Away"] * len(ids),
+            "home_team_id": [100] * len(ids),
+            "away_team_id": [200] * len(ids),
+            "home_score": [0] * len(ids),
+            "away_score": [0] * len(ids),
+            "competition_stage": ["Group Stage"] * len(ids),
+        }
+    )
+
+
+@pytest.fixture(scope="module")
+def warehouse(tmp_path_factory: pytest.TempPathFactory) -> Path:
+    root = tmp_path_factory.mktemp("warehouse")
+    database = root / "data" / "gegenpress.duckdb"
+    database.parent.mkdir(parents=True)
+    events = fixture_events()
+    connection = duckdb.connect(str(database))
+    connection.register("events_df", pd.DataFrame(events))
+    connection.register("matches_df", _matches(events))
+    connection.execute("CREATE SCHEMA raw")
+    connection.execute("CREATE TABLE raw.events AS SELECT * FROM events_df")
+    connection.execute("CREATE TABLE raw.matches AS SELECT * FROM matches_df")
+    connection.close()
+    transform("wc2022", root)
+    return root
+
+
+@pytest.fixture(scope="module")
+def connection(warehouse: Path):
+    opened = duckdb.connect(str(warehouse / "data" / "gegenpress.duckdb"), read_only=True)
+    yield opened
+    opened.close()
