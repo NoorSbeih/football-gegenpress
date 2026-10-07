@@ -6,6 +6,8 @@ import { getMatch, getMatchIndex } from "@/lib/data";
 
 type Params = { matchId: string };
 
+export const dynamicParams = false;
+
 export function generateStaticParams() {
   return getMatchIndex().map((match) => ({ matchId: String(match.match_id) }));
 }

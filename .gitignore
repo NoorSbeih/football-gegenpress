@@ -18,6 +18,7 @@ data/raw/
 node_modules/
 .next/
 out/
+.vercel/
 
 # Local env
 .env

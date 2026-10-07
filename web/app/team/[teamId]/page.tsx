@@ -6,6 +6,8 @@ import { pct, seconds } from "@/lib/format";
 
 type Params = { teamId: string };
 
+export const dynamicParams = false;
+
 export function generateStaticParams() {
   return getTeams().map((team) => ({ teamId: String(team.team_id) }));
 }

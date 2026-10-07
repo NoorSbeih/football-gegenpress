@@ -6,6 +6,10 @@ This is not a pass map. A pass map draws circulation while a team has the ball. 
 
 World Cup 2022, StatsBomb open data. Built by Noor Sbeih.
 
+[Live site](https://temporary-express-fluorine-c22iqf7.vercel.app) · [source](https://github.com/NoorSbeih/football-gegenpress)
+
+![The table, Spain's pitch, and the Spain–Germany tape](docs/demo.gif)
+
 ## What the tournament shows
 
 4,213 live losses. 2,810 restarts left out (plus 32 team changes with no locatable touch). Pressure arrived inside eight seconds on **51.3%** of live losses, median 2.7 seconds. The ball came back inside eight seconds on **5.2%**, and inside five seconds on **1.5%**.
@@ -94,4 +98,4 @@ npm run lint
 npm run build
 ```
 
-`npm run lint` calls ESLint. Next.js 16 removed `next lint`.
+`npm run lint` calls ESLint. Next.js 16 removed `next lint`. `npm run build` writes a static site to `web/out`.
