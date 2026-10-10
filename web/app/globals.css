@@ -171,7 +171,7 @@ h2 {
 .seconds {
   display: grid;
   grid-template-columns: repeat(8, minmax(0, 1fr));
-  align-items: end;
+  align-items: stretch;
   gap: 0.5rem;
   height: 11rem;
   margin: 1.25rem 0 0.35rem;
@@ -182,11 +182,25 @@ h2 {
 .seconds li {
   display: flex;
   flex-direction: column;
-  align-items: center;
-  justify-content: flex-end;
+  align-items: stretch;
   gap: 0.35rem;
-  height: 100%;
   min-width: 0;
+  min-height: 0;
+}
+
+.seconds-plot {
+  display: flex;
+  flex: 1 1 auto;
+  flex-direction: column;
+  justify-content: flex-end;
+  min-height: 0;
+  width: 100%;
+}
+
+.seconds-spacer {
+  flex-basis: 0;
+  flex-shrink: 1;
+  min-height: 0;
 }
 
 .seconds li[data-cut="true"] {
@@ -196,6 +210,8 @@ h2 {
 
 .seconds-bar {
   display: block;
+  flex-basis: 0;
+  flex-shrink: 1;
   width: 100%;
   min-height: 2px;
   background: var(--line);
@@ -207,8 +223,15 @@ h2 {
 
 .seconds-n,
 .seconds-label {
+  flex: none;
   font-family: var(--font-display), sans-serif;
   font-variant-numeric: tabular-nums;
+  text-align: center;
+  line-height: 1.1;
+}
+
+.seconds-n {
+  margin-bottom: 0.2rem;
 }
 
 .seconds-label {

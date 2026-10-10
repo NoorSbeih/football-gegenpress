@@ -8,11 +8,11 @@ export function RegainBySecond({ counts }: { counts: number[] }) {
           data-late={bucket >= 5 ? "true" : undefined}
           data-cut={bucket === 5 ? "true" : undefined}
         >
-          <span className="seconds-n">{n}</span>
-          <span
-            className="seconds-bar"
-            style={{ height: `${Math.max(4, (n / max) * 100)}%` }}
-          />
+          <span className="seconds-plot">
+            <span className="seconds-spacer" style={{ flexGrow: max - n }} />
+            <span className="seconds-n">{n}</span>
+            <span className="seconds-bar" style={{ flexGrow: n }} />
+          </span>
           <span className="seconds-label">{bucket}</span>
         </li>
       ))}
