@@ -39,7 +39,10 @@ export function TeamTable({ teams }: { teams: TeamRow[] }) {
   return (
     <div className="table-wrap">
       <table>
-        <caption>World Cup 2022 teams, ranked by regains after a high loss.</caption>
+        <caption>
+          Ranked by regains after a high loss: the ball given away in the opponent&apos;s third. The
+          count beside each rate is the number of those losses.
+        </caption>
         <thead>
           <tr>
             {COLUMNS.map((column) => {

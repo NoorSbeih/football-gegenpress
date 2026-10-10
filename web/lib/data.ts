@@ -18,6 +18,24 @@ export function getTeams(): TeamRow[] {
   return readJson<TeamFile>(["teams", "wc2022.json"]).teams;
 }
 
+/** Tournament regain counts by whole second, summed from the team histograms. */
+export function getRegainBySecond(): number[] {
+  const counts = Array.from({ length: 8 }, () => 0);
+  const dir = path.join(process.cwd(), "public", "data", "pitches");
+  for (const file of fs.readdirSync(dir)) {
+    if (!file.endsWith(".json")) {
+      continue;
+    }
+    const pitch = JSON.parse(fs.readFileSync(path.join(dir, file), "utf8")) as PitchFile;
+    for (const bin of pitch.histogram) {
+      if (bin.window_s === 8 && bin.bucket >= 0 && bin.bucket < 8) {
+        counts[bin.bucket] += bin.n;
+      }
+    }
+  }
+  return counts;
+}
+
 export function getTeam(teamId: number): TeamRow | undefined {
   return getTeams().find((team) => team.team_id === teamId);
 }

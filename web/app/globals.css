@@ -159,6 +159,62 @@ h2 {
   font-size: 1.125rem;
 }
 
+.reading {
+  max-width: 42rem;
+  margin: 0 0 2.5rem;
+}
+
+.reading p {
+  margin: 0;
+}
+
+.seconds {
+  display: grid;
+  grid-template-columns: repeat(8, minmax(0, 1fr));
+  align-items: end;
+  gap: 0.5rem;
+  height: 11rem;
+  margin: 1.25rem 0 0.35rem;
+  padding: 0;
+  list-style: none;
+}
+
+.seconds li {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 0.35rem;
+  height: 100%;
+  min-width: 0;
+}
+
+.seconds li[data-cut="true"] {
+  border-left: 2px solid var(--accent);
+  padding-left: 0.35rem;
+}
+
+.seconds-bar {
+  display: block;
+  width: 100%;
+  min-height: 2px;
+  background: var(--line);
+}
+
+.seconds li[data-late="true"] .seconds-bar {
+  background: var(--accent);
+}
+
+.seconds-n,
+.seconds-label {
+  font-family: var(--font-display), sans-serif;
+  font-variant-numeric: tabular-nums;
+}
+
+.seconds-label {
+  color: var(--muted);
+}
+
 .table-wrap {
   overflow-x: auto;
 }

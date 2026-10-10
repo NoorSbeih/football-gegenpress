@@ -22,12 +22,12 @@ export function TeamView({ team, pitch }: { team: TeamRow; pitch: PitchFile }) {
     <>
       <div className="split" aria-label="High losses against low losses">
         <p>
-          <span>After a high loss</span>
+          <span>Opponent&apos;s third</span>
           <strong>{pct(team.high_loss_regain_pct)}</strong>
           <em>{team.n_high} high losses</em>
         </p>
         <p>
-          <span>After a low loss</span>
+          <span>Own third</span>
           <strong>{pct(team.low_loss_regain_pct)}</strong>
           <em>{team.n_low} low losses</em>
         </p>
@@ -57,8 +57,9 @@ export function TeamView({ team, pitch }: { team: TeamRow; pitch: PitchFile }) {
         />
       </div>
       <p className="definition">
-        The clock starts at the last touch before a live loss. A regain is winning the ball back
-        before the window ends. Restarts never start the clock.
+        Opponent&apos;s third is the gegenpress: the ball was lost while attacking. Own third is
+        defending, and {team.n_low} {team.n_low === 1 ? "loss is" : "losses are"} a small sample.
+        The clock starts at the last touch before a live loss. Restarts never start it.
       </p>
       <section className="chart-block" aria-labelledby="hist-title">
         <h2 id="hist-title">Won back, by second</h2>
