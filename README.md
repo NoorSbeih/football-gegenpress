@@ -6,7 +6,7 @@ This is not a pass map. A pass map draws circulation while a team has the ball. 
 
 World Cup 2022, StatsBomb open data. Built by Noor Sbeih.
 
-[Live site](https://temporary-express-fluorine-c22iqf7.vercel.app) · [source](https://github.com/NoorSbeih/football-gegenpress)
+[Live site](https://football-gegenpress.vercel.app) · [source](https://github.com/NoorSbeih/football-gegenpress)
 
 ![The table, Spain's pitch, and the Spain–Germany tape](docs/demo.gif)
 
